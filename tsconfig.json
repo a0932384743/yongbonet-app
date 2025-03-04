@@ -1,0 +1,15 @@
+{
+  // https://nuxt.com/docs/guide/concepts/typescript
+  "extends": "./.nuxt/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".", // 設置基準路徑為專案根目錄
+    "strict": true,
+    "types": ["@nuxt/types"],
+    "paths": {
+      "@/*": ["./*"],
+      "@components/*": ["./components/*"],
+      "@assets/*": ["./assets/*"],
+      "@plugins/*": ["./plugins/*"]
+    }
+  }
+}
