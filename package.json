@@ -11,6 +11,7 @@
     "dev:local": "nuxt dev --dotenv .env.local",
     "dev:prod": "nuxt dev --dotenv .env.production",
     "dev": "nuxt dev --dotenv .env.production",
+    "start": "nuxt start",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
