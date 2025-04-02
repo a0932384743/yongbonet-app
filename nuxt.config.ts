@@ -1,13 +1,21 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { fileURLToPath, URL } from 'url';
+import Aura from '@primeuix/themes/aura';
 import dotenv from 'dotenv';
 dotenv.config();
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-03-01',
   devtools: { enabled: true },
-  build: {
-    transpile: ['vuetify']
+  css:['@/public/global.css' , 'primeicons/primeicons.css'],
+  modules: ['@primevue/nuxt-module'],
+  primevue: {
+    autoImport: true,
+    options: {
+      theme: {
+        preset: Aura
+      }
+    }
   },
   runtimeConfig: {
     apiUrl: process.env.API_BASE_URL,

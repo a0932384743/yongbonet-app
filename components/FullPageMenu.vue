@@ -1,75 +1,108 @@
 <template>
-  <div>
-    <h2>所有供應商的菜單</h2>
+  <div class="waterfall">
     <div v-for="vendor in vendors" :key="vendor.id" class="vendor-section">
-      <h3>{{ vendor.name }}</h3>
-      <ul>
-        <li v-for="product in vendor.menu" :key="product.id">
-          <label>
-            <input type="checkbox" v-model="selectedProducts" :value="product.id" />
-            {{ product.name }} - ${{ product.price }}
-          </label>
-        </li>
-      </ul>
+      <h3 class="vendor-name">{{ vendor.name }}</h3>
+      <data-view :value="vendor.menu">
+        <template #list="slotProps">
+          <div class="products-container">
+            <div
+              v-for="item in slotProps.items"
+              :key="JSON.stringify(item)"
+              class="product-container"
+            >
+              <div class="row">
+                <checkbox type="checkbox" :value="item.id" size="large" />
+                <h2 class="name">{{ item.name }}</h2>
+                <Button icon="pi pi-heart" outlined severity="danger"/>
+              </div>
+              <div class="row">
+                <div class="price">NT {{ item.price.toLocaleString() }}元</div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </data-view>
+
     </div>
-    <button @click="submitOrder">送出訂單</button>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
-
+import {
+  DataView,
+  Button,
+  Checkbox
+} from 'primevue'
 export default defineComponent({
   name: 'FullPageMenu',
   props: {
     vendors: Array,
     currentUser: Object
   },
-  setup(props) {
+  components: [DataView, Button , Checkbox],
+  setup() {
     const selectedProducts = ref<string[]>([]);
-
-    const submitOrder = () => {
-      const order = {
-        userId: props.currentUser.id,
-        vendorId: null, // 這裡可以根據需求修改
-        products: selectedProducts.value,
-        totalPrice: selectedProducts.value.reduce((total, productId) => {
-          for (const vendor of props.vendors) {
-            const product = vendor.menu.find(p => p.id === productId);
-            if (product) {
-              return total + product.price;
-            }
-          }
-          return total;
-        }, 0),
-        status: 'pending'
-      };
-      console.log('Order submitted:', order);
-      // 這裡可以加入將訂單送到 Firebase 的邏輯
-    };
 
     return {
       selectedProducts,
-      submitOrder
     };
   }
 });
 </script>
 
 <style scoped>
+.waterfall {
+  column-count: 3; /* 設定 3 欄 */
+  column-gap: 10px;
+  column-fill: auto;
+
+  @media (max-width: 768px) {
+    column-count: 1; /* 中尺寸設定 2 欄 */
+  }
+
+}
+
 .vendor-section {
-  margin-bottom: 24px;
+  break-inside: avoid; /* 避免內容跨欄 */
+  margin-bottom: 10px;
+  padding: 0 15px;
 }
-ul {
-  list-style-type: none;
-  padding: 0;
+
+.vendor-name{
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0 0 5px 0;
 }
-li {
-  margin-bottom: 8px;
+
+.products-container {
+  width: 100%;
+  display: inline-flex;
+  flex-direction: column;
 }
-button {
-  margin-top: 16px;
-  padding: 8px 16px;
-  font-size: 16px;
+
+.product-container {
+  width: 100%;
+  display: inline-flex;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.price{
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: end;
 }
 </style>
