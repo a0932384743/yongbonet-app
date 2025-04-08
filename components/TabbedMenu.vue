@@ -1,31 +1,63 @@
 <template>
-  <div>
-    <nav>
-      <ul>
-        <li v-for="vendor in vendors" :key="vendor.id">
-          <button @click="selectVendor(vendor.id)">
-            {{ vendor.name }}
-          </button>
-        </li>
-      </ul>
-    </nav>
-    <main v-if="selectedVendor">
-      <h2>{{ selectedVendor.name }} 的菜單</h2>
-      <ul>
-        <li v-for="product in selectedVendor.menu" :key="product.id">
-          <label>
-            <input type="checkbox" v-model="selectedProducts" :value="product.id" />
-            {{ product.name }} - ${{ product.price }}
-          </label>
-        </li>
-      </ul>
-      <button @click="submitOrder">送出訂單</button>
-    </main>
-  </div>
+  <tabs scrollable :value="selectedVendorId">
+    <tab-list>
+      <tab v-for="vendor in vendors" :key="vendor.id" :value="vendor.id">
+        {{ vendor.name }}
+      </tab>
+    </tab-list>
+    <tab-panels>
+      <tab-panel v-for="vendor in vendors" :key="vendor.id + '_products'" :value="vendor.id">
+        <data-view :value="vendor.menu">
+          <template #list="slotProps">
+            <div class="products-container">
+              <div
+                v-for="item in slotProps.items"
+                :key="JSON.stringify(item)"
+                class="product-container"
+              >
+                <div class="row">
+                  <img class="product-img" :src="item.img" :alt="item.name" />
+                  <div class="column">
+                    <h2 class="name">{{ item.name }}</h2>
+                    <div>
+                      <tag style="border: 2px solid lightgray; background: transparent;">
+                        <span style="color:#000000">{{ item.rating || '-' }}</span>
+                        <i class="pi pi-star-fill" style="fill:#ffc400"></i>
+                      </tag>
+                    </div>
+                  </div>
+                </div>
+                <div class="column" style="justify-content: space-between">
+                  <div class="price">NT {{ item.price.toLocaleString() }}元</div>
+                  <div class="row">
+                    <Button icon="pi pi-heart" outlined severity="danger"/>
+                    <Button
+                      icon="pi pi-shopping-cart"
+                      label="加入購物車"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </data-view>
+      </tab-panel>
+    </tab-panels>
+  </tabs>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed , watch} from 'vue';
+import { defineComponent, ref, watch } from 'vue'
+import {
+  Tab,
+  TabList,
+  Tabs,
+  TabPanels,
+  TabPanel,
+  Tag,
+  DataView,
+  Button
+} from 'primevue'
 
 export default defineComponent({
   name: 'TabbedMenu',
@@ -33,75 +65,79 @@ export default defineComponent({
     vendors: Array,
     currentUser: Object
   },
+  components: [Tabs, TabList, Tab, TabPanels, TabPanel, Tag, DataView, Button],
   setup(props) {
-    const selectedVendorId = ref<string | null>(null);
-    const selectedProducts = ref<string[]>([]);
+    const selectedVendorId = ref<string | null>(null)
+    const selectedProducts = ref<string[]>([])
 
-    const selectedVendor = computed(() => {
-      return props.vendors.find(vendor => vendor.id === selectedVendorId.value) || null;
-    });
-
-    const selectVendor = (vendorId: string) => {
-      selectedVendorId.value = vendorId;
-      selectedProducts.value = [];
-    };
-
-    const submitOrder = () => {
-      if (!selectedVendor.value) return;
-      const order = {
-        userId: props.currentUser.id,
-        vendorId: selectedVendor.value.id,
-        products: selectedProducts.value,
-        totalPrice: selectedProducts.value.reduce((total, productId) => {
-          const product = selectedVendor.value!.menu.find(p => p.id === productId);
-          return total + (product ? product.price : 0);
-        }, 0),
-        status: 'pending'
-      };
-      console.log('Order submitted:', order);
-      // 這裡可以加入將訂單送到 Firebase 的邏輯
-    };
-
-    watch(() => props.vendors, (newVendors) => {
-      if (newVendors.length > 0) {
-        selectVendor(newVendors[0].id);
-      }
-    }, { immediate: true });
+    watch(
+      () => props.vendors,
+      (newVendors) => {
+        if (newVendors.length > 0) {
+          selectedVendorId.value = newVendors[0].id
+        }
+      },
+      { immediate: true }
+    )
 
     return {
-      selectedVendor,
-      selectedProducts,
-      selectVendor,
-      submitOrder
-    };
+      selectedVendorId,
+      selectedProducts
+    }
   }
-});
+})
 </script>
 
-<style scoped>
-nav ul {
-  list-style-type: none;
-  padding: 0;
+<style scoped lang="scss">
+.products-container {
+  width: 100%;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.product-container {
+  width: 100%;
+  display: inline-flex;
+  justify-content: space-between;
+  padding: 20px 10px;
+  border-bottom: 1px solid lightgray;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.product-img {
+  display: block;
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin:0 20px
+}
+
+.row {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 1rem;
 }
-nav button {
-  padding: 8px 16px;
-  font-size: 16px;
+
+.column {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px
 }
-main {
-  margin-top: 16px;
+
+.name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 0 0 5px 0;
 }
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  margin-bottom: 8px;
-}
-button {
-  margin-top: 16px;
-  padding: 8px 16px;
-  font-size: 16px;
+
+.price{
+  font-size: 1rem;
+  font-weight: bold;
+  text-align: end;
 }
 </style>
