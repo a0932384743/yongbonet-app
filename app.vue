@@ -3,10 +3,10 @@
     <div class="row">
       <h1 class="header">歡迎, {{ currentUser.name }}</h1>
       <div class="row" style="gap: 1rem; align-items: center">
-        <toggle-switch v-model="isTabbedView" aria-label="切換顯示風格" />全菜單檢視
+        <SelectButton v-model="isTabbedView" :options="options" option-label="label" option-value="value" />
       </div>
     </div>
-    <TabbedMenu v-if="!isTabbedView" :vendors="vendors" :currentUser="currentUser" />
+    <TabbedMenu v-if="isTabbedView" :vendors="vendors" :currentUser="currentUser" />
     <FullPageMenu v-else :vendors="vendors" :currentUser="currentUser" />
     <div class="bottom">
       <p-button
@@ -26,7 +26,7 @@
 import { defineComponent, ref } from 'vue'
 import TabbedMenu from '@components/TabbedMenu.vue'
 import FullPageMenu from '@components/FullPageMenu.vue'
-import { ToggleSwitch, Button as PButton } from 'primevue'
+import { SelectButton, Button as PButton } from 'primevue'
 
 export default defineComponent({
   name: 'HomePage',
@@ -34,7 +34,7 @@ export default defineComponent({
     TabbedMenu,
     PButton,
     FullPageMenu,
-    ToggleSwitch
+    SelectButton
   },
   setup() {
     const currentUser = ref({
@@ -92,7 +92,19 @@ export default defineComponent({
       console.log('Order submitted:')
     }
 
+    const options = ref([
+      {
+        value: true,
+        label: '一頁式菜單'
+      },
+      {
+        value: false,
+        label: '整頁式菜單'
+      }
+    ])
+
     return {
+      options,
       currentUser,
       vendors,
       isTabbedView,

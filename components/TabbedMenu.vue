@@ -21,7 +21,7 @@
                     <h2 class="name">{{ item.name }}</h2>
                     <div>
                       <tag style="border: 2px solid lightgray; background: transparent;">
-                        <span style="color:#000000">{{ item.rating || '-' }}</span>
+                        <span style="color:var(--p-text-color)">{{ item.rating || '-' }}</span>
                         <i class="pi pi-star-fill" style="fill:#ffc400"></i>
                       </tag>
                     </div>
@@ -66,6 +66,7 @@ export default defineComponent({
     currentUser: Object
   },
   components: [Tabs, TabList, Tab, TabPanels, TabPanel, Tag, DataView, Button],
+
   setup(props) {
     const selectedVendorId = ref<string | null>(null)
     const selectedProducts = ref<string[]>([])

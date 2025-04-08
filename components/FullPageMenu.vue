@@ -2,7 +2,7 @@
   <div class="waterfall">
     <div v-for="vendor in vendors" :key="vendor.id" class="vendor-section">
       <h3 class="vendor-name">{{ vendor.name }}</h3>
-      <data-view :value="vendor.menu">
+      <DataView :value="vendor.menu">
         <template #list="slotProps">
           <div class="products-container">
             <div
@@ -11,68 +11,64 @@
               class="product-container"
             >
               <div class="row">
-                <checkbox type="checkbox" :value="item.id" size="large" />
-                <h2 class="name">{{ item.name }}</h2>
-                <Button icon="pi pi-heart" outlined severity="danger"/>
-              </div>
-              <div class="row">
                 <div class="price">NT {{ item.price.toLocaleString() }}元</div>
               </div>
             </div>
           </div>
         </template>
-      </data-view>
-
+      </DataView>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
-import {
-  DataView,
-  Button,
-  Checkbox
-} from 'primevue'
+import { defineComponent, ref } from 'vue'
+import { DataView, Button, Checkbox } from 'primevue'
+
 export default defineComponent({
   name: 'FullPageMenu',
   props: {
     vendors: Array,
     currentUser: Object
   },
-  components: [DataView, Button , Checkbox],
+  components: [DataView, Button, Checkbox],
   setup() {
-    const selectedProducts = ref<string[]>([]);
+    const selectedProducts = ref<string[]>([])
 
     return {
-      selectedProducts,
-    };
+      selectedProducts
+    }
   }
-});
+})
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .waterfall {
-  column-count: 3; /* 設定 3 欄 */
-  column-gap: 10px;
-  column-fill: auto;
+  column-count: 4; /* 可根據螢幕大小動態調整 */
+  column-gap: 16px;
 
   @media (max-width: 768px) {
     column-count: 1; /* 中尺寸設定 2 欄 */
   }
-
 }
 
 .vendor-section {
-  break-inside: avoid; /* 避免內容跨欄 */
-  margin-bottom: 10px;
-  padding: 0 15px;
+  break-inside: avoid;
+  padding: 0;
+  margin: 0;
+  display: block;
+  overflow: hidden;
 }
 
-.vendor-name{
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin: 0 0 5px 0;
+.vendor-name {
+  font-family: Inter, serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 100%;
+  letter-spacing: 0;
+  text-align: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #ccc;
 }
 
 .products-container {
@@ -100,7 +96,7 @@ export default defineComponent({
   margin: 0;
 }
 
-.price{
+.price {
   font-size: 1.2rem;
   font-weight: bold;
   text-align: end;
