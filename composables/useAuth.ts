@@ -12,10 +12,10 @@ const provider = new OAuthProvider('oidc.line') // 使用 LINE OIDC Provider
 export const useAuth = () => {
   const { auth } = useFirebase()
 
-  const user = ref<UserData | null>(null) // 用於存儲商品列表
+  const user = ref<UserData | null | unknown>(null) // 用於存儲商品列表
 
   const isLoading = ref<boolean>(false)
-  const error = ref(null)
+  const error = ref<unknown>(null)
 
   // LINE 登入
   const signInWithLine = async () => {

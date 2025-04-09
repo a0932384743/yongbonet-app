@@ -1,13 +1,51 @@
 <template>
   <div class="container">
+    <div class="overlay" v-if="productLoading || vendorLoading">
+      <ProgressSpinner
+        style="width: 50px; height: 50px"
+        strokeWidth="8"
+        fill="transparent"
+        animationDuration=".5s"
+        aria-label="ProgressSpinner"
+      />
+    </div>
     <div class="row">
-      <h1 class="header">歡迎, {{ currentUser.name }}</h1>
+      <div class="row" style="gap: 0.3rem; align-items: center; position: relative">
+        <span v-if="currentVendor.isFavorite" class="pi pi-star-fill" style="color: #ffb100" />
+        <span v-else class="pi pi-star" />
+        <span class="header">{{ currentVendor?.name || '' }}</span>
+        <Button
+          icon="pi pi-angle-down"
+          variant="text"
+          rounded
+          aria-haspopup="true"
+          aria-controls="overlay_menu"
+          @click="toggleMenu"
+        />
+        <PMenu :model="vendors" :popup="true" ref="isMenuPopup" id="overlay_menu">
+          <template #item="{ item, props }">
+            <div
+              class="flex items-center"
+              v-bind="props.action"
+              @click="onSelectVendor(item as VendorData)"
+            >
+              <Avatar :image="item.img" class="mr-2" />
+              <span>{{ item.name }}</span>
+            </div>
+          </template>
+        </PMenu>
+      </div>
       <div class="row" style="gap: 1rem; align-items: center">
-        <SelectButton v-model="isTabbedView" :options="options" option-label="label" option-value="value" />
+        <SelectButton
+          v-model="isTabbedView"
+          :options="options"
+          option-label="label"
+          option-value="value"
+        />
       </div>
     </div>
-    <TabbedMenu v-if="isTabbedView" :vendors="vendors" :currentUser="currentUser" />
-    <FullPageMenu v-else :vendors="vendors" :currentUser="currentUser" />
+    <TabbedMenu v-if="isTabbedView" :vendor="currentVendor"/>
+    <FullPageMenu v-else :vendor="currentVendor"/>
     <div class="bottom">
       <p-button
         @click="submitOrder"
@@ -23,73 +61,49 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent, ref, onBeforeMount, watch } from 'vue'
+import { SelectButton, Button as PButton, ProgressSpinner, Menu as PMenu, Avatar } from 'primevue'
 import TabbedMenu from '@components/TabbedMenu.vue'
 import FullPageMenu from '@components/FullPageMenu.vue'
-import { SelectButton, Button as PButton } from 'primevue'
+import { useVendors, type VendorData } from '@composables/useVendors'
+import { useProducts } from '@composables/useProducts'
+
 
 export default defineComponent({
   name: 'HomePage',
   components: {
     TabbedMenu,
-    PButton,
     FullPageMenu,
-    SelectButton
+    PButton,
+    SelectButton,
+    ProgressSpinner,
+    PMenu,
+    Avatar
   },
   setup() {
+    const { vendors, isLoading: vendorLoading, getVendors } = useVendors()
+    const { isLoading:productLoading } = useProducts()
+
     const currentUser = ref({
       id: 'user1',
       name: 'Alice',
       favorites: ['vendor1', 'vendor2']
     })
 
-    const vendors = ref([
-      {
-        id: 'vendor1',
-        name: 'Vendor A',
-        menu: [
-          {
-            id: 'product1',
-            name: 'Product 1',
-            price: 10.0,
-            rating: 4,
-            img: 'https://cdn-icons-png.flaticon.com/512/4129/4129528.png'
-          },
-          {
-            id: 'product2',
-            name: 'Product 2',
-            price: 15.5,
-            rating: 4,
-            img: 'https://cdn-icons-png.flaticon.com/512/4129/4129528.png'
-          }
-        ]
-      },
-      {
-        id: 'vendor2',
-        name: 'Vendor B',
-        menu: [
-          {
-            id: 'product3',
-            name: 'Product 3',
-            price: 10.0,
-            rating: 4,
-            img: 'https://cdn-icons-png.flaticon.com/512/4129/4129528.png'
-          },
-          {
-            id: 'product4',
-            name: 'Product 4',
-            price: 20.0,
-            rating: 4,
-            img: 'https://cdn-icons-png.flaticon.com/512/4129/4129528.png'
-          }
-        ]
-      }
-    ])
-
-    const isTabbedView = ref(true)
+    const currentVendor = ref<VendorData>({} as VendorData)
+    const isTabbedView = ref<boolean>(true)
+    const isMenuPopup = ref()
 
     const submitOrder = () => {
       console.log('Order submitted:')
+    }
+
+    const toggleMenu = (event: MouseEvent) => {
+      isMenuPopup.value.toggle(event)
+    }
+
+    const onSelectVendor = (vendor: VendorData) => {
+      currentVendor.value = vendor
     }
 
     const options = ref([
@@ -103,11 +117,27 @@ export default defineComponent({
       }
     ])
 
+    onBeforeMount(() => {
+      getVendors()
+    })
+
+    watch(vendors, (newVendors) => {
+      if (newVendors.length > 0) {
+        currentVendor.value = newVendors.find((v) => v.isFavorite) || newVendors[0]
+      }
+    })
+
     return {
+      productLoading,
+      vendorLoading,
       options,
       currentUser,
+      currentVendor,
+      onSelectVendor,
       vendors,
       isTabbedView,
+      isMenuPopup,
+      toggleMenu,
       submitOrder
     }
   }
@@ -121,6 +151,18 @@ export default defineComponent({
   padding: 1rem 2rem 10rem 2rem;
   overflow: auto;
   position: relative;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .bottom {
@@ -146,7 +188,7 @@ export default defineComponent({
 }
 
 .header {
-  font-size: 2rem;
+  font-size: 1.2rem;
   font-weight: bold;
 }
 </style>

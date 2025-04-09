@@ -5,74 +5,66 @@ export interface ProductData {
   id?: string // Firebase 會自動生成 ID，可選屬性
   name: string // 商品名稱
   description: string // 商品描述
+  category:string // 商品類別
   price: number // 價格
+  rating:number // 評分
   vendorId: string // 關聯的廠商 ID
-  imageUrl: string // 商品圖片
+  img: string // 商品圖片
 }
 
 export const useProducts = () => {
   const firebase = useFirebase()
 
   const products = ref<Array<ProductData>>([]) // 用於存儲商品列表
-  const product = ref<ProductData | null>(null) // 用於存儲商品列表
+  const productsByVendor = ref<{
+    [vendorId: string]: Array<ProductData>
+  }>({}) // 用於存儲商品列表byVendor
 
   const isLoading = ref<boolean>(false)
-  const error = ref(null)
+  const error = ref<unknown>(null)
 
-  const getProductById = async (productId: string) => {
+  const getProductByIds = async (productIds: Array<string>) => {
     isLoading.value = true
     error.value = null
     try {
-      const productsRef = firebase.ref(firebase.database, `products/${productId}`)
-      const snapshot = await firebase.get(productsRef)
-      product.value = snapshot.exists() ? snapshot.val() : null
+      const productData = await Promise.all(
+        productIds.map(async (id) => {
+          const productRef = await firebase.ref(firebase.database, `products/${id}`)
+          const snapshot = await firebase.get(productRef)
+          return snapshot.val() || null
+        })
+      )
+      products.value = productData.filter((product) => product !== null) as Array<ProductData>
     } catch (e) {
       error.value = e
     }
     isLoading.value = false
   }
 
-  // 取得所有商品
-  const getProducts = async () => {
+  const getProductByVendor = async (vendorIds: Array<string>) => {
     isLoading.value = true
     error.value = null
     try {
-      const productsRef = firebase.ref(firebase.database, 'products')
-      const snapshot = await firebase.get(productsRef)
-      products.value = snapshot.exists() ? snapshot.val() : []
+      const productRef = await firebase.ref(firebase.database, `products`)
+      const snapshot = await firebase.get(productRef)
+      const products = snapshot.val() || {}
+      productsByVendor.value = vendorIds
+        .map((id) => {
+          return {
+            id,
+            products: Object.values(
+              products.filter((product: ProductData) => product.vendorId === id)
+            )
+          }
+        })
+        .reduce((obj, val) => {
+          return { ...obj, [val.id]: val.products }
+        }, {})
     } catch (e) {
       error.value = e
     }
     isLoading.value = false
   }
 
-  // 新增/更新商品
-  const saveProduct = async (productId: string, productData: ProductData) => {
-    isLoading.value = true
-    error.value = null
-    try {
-      const productRef = firebase.ref(firebase.database, `products/${productId}`)
-      await firebase.set(productRef, productData)
-      await getProducts()
-    } catch (e) {
-      error.value = e
-    }
-    isLoading.value = false
-  }
-
-  // 刪除商品
-  const deleteProduct = async (productId: string) => {
-    isLoading.value = true
-    error.value = null
-    try {
-      const productRef = ref(firebase.database, `products/${productId}`)
-      await firebase.set(productRef, null)
-      await getProducts()
-    } catch (e) {
-      error.value = e
-    }
-    isLoading.value = false
-  }
-
-  return { getProductById, getProducts, saveProduct, deleteProduct }
+  return { products, isLoading, getProductByIds, productsByVendor, getProductByVendor }
 }

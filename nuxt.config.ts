@@ -9,6 +9,17 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   css:['@/public/global.css' , 'primeicons/primeicons.css'],
   modules: ['@primevue/nuxt-module'],
+  app: {
+    head: {
+      title: '瑋航一頁式訂單系統',
+      meta: [
+        { name: 'description', content: '瑋航一頁式訂單系統' },
+      ],
+      link: [
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+      ]
+    }
+  },
   primevue: {
     autoImport: true,
     options: {
@@ -31,14 +42,10 @@ export default defineNuxtConfig({
   typescript: {
     shim: false
   },
-  axios: {
-    baseURL: process.env.API_BASE_URL || 'http://localhost:3000'
-  },
   alias: {
     '@plugins': fileURLToPath(new URL('.', import.meta.url)),
     '@components': fileURLToPath(new URL('./components', import.meta.url)),
     '@assets': fileURLToPath(new URL('./assets', import.meta.url)),
-    '@plugins': fileURLToPath(new URL('./plugins', import.meta.url)),
     '@composables':  fileURLToPath(new URL('./composables', import.meta.url)),
   },
   vite: {
@@ -47,7 +54,6 @@ export default defineNuxtConfig({
         '@plugins': fileURLToPath(new URL('.', import.meta.url)),
         '@components': fileURLToPath(new URL('./components', import.meta.url)),
         '@assets': fileURLToPath(new URL('./assets', import.meta.url)),
-        '@plugins': fileURLToPath(new URL('./plugins', import.meta.url)),
         '@composables':  fileURLToPath(new URL('./composables', import.meta.url)),
       }
     }

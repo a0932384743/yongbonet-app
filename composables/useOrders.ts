@@ -23,7 +23,7 @@ export const useOrders = () => {
   const orders = ref<Array<OrderData>>([]) // 用於存儲商品列表
 
   const isLoading = ref<boolean>(false)
-  const error = ref(null)
+  const error = ref<unknown>(null)
 
   // 取得所有訂單
   const getOrders = async () => {

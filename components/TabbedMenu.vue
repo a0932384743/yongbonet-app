@@ -1,13 +1,20 @@
 <template>
-  <tabs scrollable :value="selectedVendorId">
+  <tabs scrollable :value="selectCategory" @tab-change="onSelectCategory">
     <tab-list>
-      <tab v-for="vendor in vendors" :key="vendor.id" :value="vendor.id">
-        {{ vendor.name }}
+      <tab v-for="category in Object.keys(productByCategory)" :key="category" :value="category">
+        {{ category }}
       </tab>
     </tab-list>
     <tab-panels>
-      <tab-panel v-for="vendor in vendors" :key="vendor.id + '_products'" :value="vendor.id">
-        <data-view :value="vendor.menu">
+      <tab-panel
+        v-for="category in Object.keys(productByCategory)"
+        :key="category + '_products'"
+        :value="category"
+      >
+        <DataView
+          :value="productByCategory[category as keyof typeof productByCategory]"
+          :layout="'list'"
+        >
           <template #list="slotProps">
             <div class="products-container">
               <div
@@ -16,13 +23,13 @@
                 class="product-container"
               >
                 <div class="row">
-                  <img class="product-img" :src="item.img" :alt="item.name" />
+                  <Avatar :image="item.img" class="mr-2 product-img" :alt="item.name" />
                   <div class="column">
                     <h2 class="name">{{ item.name }}</h2>
                     <div>
-                      <tag style="border: 2px solid lightgray; background: transparent;">
-                        <span style="color:var(--p-text-color)">{{ item.rating || '-' }}</span>
-                        <i class="pi pi-star-fill" style="fill:#ffc400"></i>
+                      <tag style="border: 2px solid lightgray; background: transparent">
+                        <span style="color: var(--p-text-color)">{{ item.rating || '-' }}</span>
+                        <i class="pi pi-star-fill" style="fill: #ffc400"></i>
                       </tag>
                     </div>
                   </div>
@@ -30,60 +37,82 @@
                 <div class="column" style="justify-content: space-between">
                   <div class="price">NT {{ item.price.toLocaleString() }}元</div>
                   <div class="row">
-                    <Button icon="pi pi-heart" outlined severity="danger"/>
-                    <Button
-                      icon="pi pi-shopping-cart"
-                      label="加入購物車"
-                    />
+                    <PButton icon="pi pi-heart" outlined severity="danger" />
+                    <PButton icon="pi pi-shopping-cart" label="加入購物車" />
                   </div>
                 </div>
               </div>
             </div>
           </template>
-        </data-view>
+        </DataView>
       </tab-panel>
     </tab-panels>
   </tabs>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch } from 'vue'
-import {
-  Tab,
-  TabList,
-  Tabs,
-  TabPanels,
-  TabPanel,
-  Tag,
-  DataView,
-  Button
-} from 'primevue'
+import { defineComponent, watch, computed, ref } from 'vue'
+import { Tab, TabList, Tabs, TabPanels, TabPanel, Tag, DataView, Button as PButton } from 'primevue'
+import { type VendorData } from '@composables/useVendors'
+import { useProducts } from '@composables/useProducts'
 
 export default defineComponent({
   name: 'TabbedMenu',
   props: {
-    vendors: Array,
-    currentUser: Object
+    vendor: {
+      type: Object as () => VendorData,
+      required: true
+    }
   },
-  components: [Tabs, TabList, Tab, TabPanels, TabPanel, Tag, DataView, Button],
-
+  components: {
+    Tabs,
+    TabList,
+    Tab,
+    TabPanels,
+    TabPanel,
+    Tag,
+    DataView,
+    PButton
+  },
   setup(props) {
-    const selectedVendorId = ref<string | null>(null)
-    const selectedProducts = ref<string[]>([])
-
+    const { products, getProductByIds } = useProducts()
+    const selectCategory = ref<string>('')
+    const onSelectCategory = (value: string) => {
+      selectCategory.value = value
+    }
     watch(
-      () => props.vendors,
-      (newVendors) => {
-        if (newVendors.length > 0) {
-          selectedVendorId.value = newVendors[0].id
+      () => props.vendor,
+      (vendor, old) => {
+        if ((vendor && vendor.id !== old?.id) || products.value.length === 0) {
+          getProductByIds(vendor.products)
         }
       },
-      { immediate: true }
+      { immediate: true, deep: true }
     )
 
+    watch(
+      products,
+      (products) => {
+        if (products.length > 0) {
+          selectCategory.value = products[0].category
+        }
+      },
+      { deep: true }
+    )
+
+    const productByCategory = computed(() => {
+      return products.value.reduce((obj, val) => {
+        return {
+          ...obj,
+          [val.category]: [...(obj[val.category as keyof typeof obj] || []), val]
+        }
+      }, {})
+    })
+
     return {
-      selectedVendorId,
-      selectedProducts
+      selectCategory,
+      productByCategory,
+      onSelectCategory
     }
   }
 })
@@ -114,7 +143,7 @@ export default defineComponent({
   width: 80px;
   height: 80px;
   object-fit: contain;
-  margin:0 20px
+  margin: 0 20px;
 }
 
 .row {
@@ -127,7 +156,7 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 5px
+  gap: 5px;
 }
 
 .name {
@@ -136,7 +165,7 @@ export default defineComponent({
   margin: 0 0 5px 0;
 }
 
-.price{
+.price {
   font-size: 1rem;
   font-weight: bold;
   text-align: end;
