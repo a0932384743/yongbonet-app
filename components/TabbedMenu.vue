@@ -1,5 +1,5 @@
 <template>
-  <tabs scrollable :value="selectCategory" @tab-change="onSelectCategory">
+  <tabs scrollable :value="selectCategory" @tab-change="onSelectCategory" ref="targetRef" style="width: 100%;height: 100%">
     <tab-list>
       <tab v-for="category in Object.keys(productByCategory)" :key="category" :value="category">
         {{ category }} ({{
@@ -16,7 +16,7 @@
         <DataTable
           :value="productByCategory[category as keyof typeof productByCategory]"
           scrollable
-          scrollHeight="400px"
+          :scrollHeight="scrollHeight + 'px'"
         >
           <Column
             field="img"
@@ -80,7 +80,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, watch, computed, ref } from 'vue'
+import { defineComponent, watch, computed, ref, onMounted, onUnmounted } from 'vue'
 import { Tab, TabList, Tabs, TabPanels, TabPanel, DataTable, InputNumber } from 'primevue'
 import { type VendorData } from '@composables/useVendors'
 import { type ProductData, useProducts } from '@composables/useProducts'
@@ -112,9 +112,30 @@ export default defineComponent({
   setup(props, { emit }) {
     const { products, getProductByIds } = useProducts()
     const selectCategory = ref<string>('')
+    const targetRef = ref(null)
+
     const onSelectCategory = (value: string) => {
       selectCategory.value = value
     }
+
+    const scrollHeight = ref<number>(400)
+
+    function updateHeight() {
+      console.log(targetRef.value)
+      if (targetRef.value) {
+        scrollHeight.value = targetRef.value?.$el?.clientHeight || 400
+        console.log('目前高度：', scrollHeight.value)
+      }
+    }
+
+    onMounted(() => {
+      updateHeight()
+      window.addEventListener('resize', updateHeight)
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('resize', updateHeight)
+    })
 
     const updateOrder = (product: ProductData, quantity: number) => {
       emit('updateOrder', product, quantity)
@@ -151,10 +172,12 @@ export default defineComponent({
     })
 
     return {
+      targetRef,
       selectCategory,
       productByCategory,
       updateOrder,
-      onSelectCategory
+      onSelectCategory,
+      scrollHeight
     }
   }
 })
