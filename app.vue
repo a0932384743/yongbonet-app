@@ -9,65 +9,91 @@
         aria-label="ProgressSpinner"
       />
     </div>
-    <div class="row">
-      <div class="row" style="gap: 0.3rem; align-items: center; position: relative">
-        <span v-if="currentVendor.isFavorite" class="pi pi-star-fill" style="color: #ffb100" />
-        <span v-else class="pi pi-star" />
-        <span class="header">{{ currentVendor?.name || '' }}</span>
-        <Button
-          icon="pi pi-angle-down"
-          variant="text"
-          rounded
-          aria-haspopup="true"
-          aria-controls="overlay_menu"
-          @click="toggleMenu"
-        />
-        <PMenu :model="vendors" :popup="true" ref="isMenuPopup" id="overlay_menu">
-          <template #item="{ item, props }">
-            <div
-              class="flex items-center"
-              v-bind="props.action"
-              @click="onSelectVendor(item as VendorData)"
-            >
-              <Avatar :image="item.img" class="mr-2" />
-              <span>{{ item.name }}</span>
-            </div>
-          </template>
-        </PMenu>
-      </div>
-      <div class="row" style="gap: 1rem; align-items: center">
-        <SelectButton
-          v-model="isTabbedView"
-          :options="options"
-          option-label="label"
-          option-value="value"
-        />
+    <div class="top">
+      <div class="row">
+        <div class="row" style="gap: 0.5rem; align-items: center; position: relative">
+          <span
+            v-if="currentVendor.isFavorite"
+            class="pi pi-star-fill"
+            style="color: #ffb100; font-size: 28px"
+          />
+          <span v-else class="pi pi-star" style="font-size: 28px" />
+          <span class="header">{{ currentVendor?.name || '' }}</span>
+          <PButton
+            icon="pi pi-angle-down"
+            variant="text"
+            severity="secondary"
+            rounded
+            aria-haspopup="true"
+            aria-controls="overlay_menu"
+            @click="toggleMenu"
+          />
+          <PMenu :model="vendors" :popup="true" ref="isMenuPopup" id="overlay_menu">
+            <template #item="{ item, props }">
+              <div
+                class="flex items-center"
+                v-bind="props.action"
+                @click="onSelectVendor(item as VendorData)"
+              >
+                <Avatar :image="item.img" class="mr-2" />
+                <span>{{ item.name }}</span>
+              </div>
+            </template>
+          </PMenu>
+        </div>
+        <div class="row" style="gap: 1rem; align-items: center">
+          <SelectButton
+            v-model="isTabbedView"
+            :options="options"
+            option-label="label"
+            option-value="value"
+          />
+        </div>
       </div>
     </div>
-    <TabbedMenu v-if="isTabbedView" :vendor="currentVendor"/>
-    <FullPageMenu v-else :vendor="currentVendor"/>
-    <div class="bottom">
-      <p-button
-        @click="submitOrder"
-        type="button"
-        severity="info"
-        label="送出訂單"
-        icon="pi pi-send"
-        iconPos="right"
-        size="large"
+    <div class="main">
+      <TabbedMenu
+        v-if="isTabbedView"
+        :vendor="currentVendor"
+        :order="order"
+        @update-order="updateOrder"
       />
+      <FullPageMenu v-else :vendor="currentVendor" :order="order" @update-order="updateOrder" />
+    </div>
+    <div class="bottom">
+      <div class="row" style="justify-content: flex-end; align-items: center; gap: 1rem">
+        <div class="summary">
+          <span
+            >共選取<span class="h6">{{ orderTotalQuantity }}</span
+            >個商品</span
+          >
+          <span
+            >共NT<span class="h6">{{ orderTotalPrice.toLocaleString() }}</span
+            >元</span
+          >
+        </div>
+        <p-button
+          @click="submitOrder"
+          type="button"
+          severity="success"
+          label="結帳去"
+          icon="pi pi-caret-right"
+          iconPos="right"
+          class="padding"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onBeforeMount, watch } from 'vue'
+import { defineComponent, ref, onBeforeMount, watch, computed } from 'vue'
 import { SelectButton, Button as PButton, ProgressSpinner, Menu as PMenu, Avatar } from 'primevue'
 import TabbedMenu from '@components/TabbedMenu.vue'
 import FullPageMenu from '@components/FullPageMenu.vue'
 import { useVendors, type VendorData } from '@composables/useVendors'
 import { useProducts } from '@composables/useProducts'
-
+import { useOrders } from '@composables/useOrders'
 
 export default defineComponent({
   name: 'HomePage',
@@ -82,7 +108,8 @@ export default defineComponent({
   },
   setup() {
     const { vendors, isLoading: vendorLoading, getVendors } = useVendors()
-    const { isLoading:productLoading } = useProducts()
+    const { isLoading: productLoading } = useProducts()
+    const { order, updateOrder } = useOrders()
 
     const currentUser = ref({
       id: 'user1',
@@ -127,7 +154,22 @@ export default defineComponent({
       }
     })
 
+    const orderTotalPrice = computed(() => {
+      return Object.values(order.value).reduce((acc, item) => {
+        return acc + (item.quantity || 0) * (item.price || 0)
+      }, 0)
+    })
+
+    const orderTotalQuantity = computed(() => {
+      return Object.values(order.value).filter((order) => order.quantity > 0).length
+    })
+
+
     return {
+      order,
+      updateOrder,
+      orderTotalPrice,
+      orderTotalQuantity,
       productLoading,
       vendorLoading,
       options,
@@ -148,8 +190,8 @@ export default defineComponent({
 .container {
   width: 100vw;
   height: 100vh;
-  padding: 1rem 2rem 10rem 2rem;
-  overflow: auto;
+  padding: 5rem 2rem 7rem 2rem;
+  overflow: hidden;
   position: relative;
 }
 
@@ -165,9 +207,25 @@ export default defineComponent({
   align-items: center;
 }
 
+.top {
+  width: 100vw;
+  height: 5rem;
+  padding: 0 2rem;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  position: absolute;
+}
+
+.main {
+  width: 100%;
+  height: 100%;
+  border-bottom: 1px solid #10b981;
+}
+
 .bottom {
   width: 100vw;
-  height: 10rem;
+  height: 7rem;
   padding: 0 2rem;
   z-index: 999;
   left: 0;
@@ -188,7 +246,28 @@ export default defineComponent({
 }
 
 .header {
-  font-size: 1.2rem;
+  font-size: 1.75rem;
   font-weight: bold;
+}
+
+.padding {
+  padding: 1rem 2rem;
+}
+
+.summary {
+  font-size: 14px;
+  letter-spacing: 0;
+  text-align: center;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  .h6 {
+    font-weight: 700;
+    font-size: 20px;
+    margin: 0 5px;
+  }
 }
 </style>

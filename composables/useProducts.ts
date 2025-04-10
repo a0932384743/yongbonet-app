@@ -7,6 +7,8 @@ export interface ProductData {
   description: string // 商品描述
   category:string // 商品類別
   price: number // 價格
+  unit: string // 單位
+  isFavorite: boolean // 是否為最愛
   rating:number // 評分
   vendorId: string // 關聯的廠商 ID
   img: string // 商品圖片

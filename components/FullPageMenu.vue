@@ -33,6 +33,7 @@ import { computed, defineComponent, watch } from 'vue'
 import { DataView } from 'primevue'
 import { type VendorData } from '@composables/useVendors'
 import { useProducts } from '@composables/useProducts'
+import type { OrderItem } from '@composables/useOrders'
 
 export default defineComponent({
   name: 'FullPageMenu',
@@ -42,6 +43,12 @@ export default defineComponent({
   props: {
     vendor: {
       type: Object as () => VendorData,
+      required: true
+    },
+    order: {
+      type: Object as () => {
+        [productId: string]: OrderItem
+      },
       required: true
     }
   },

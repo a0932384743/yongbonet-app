@@ -11,7 +11,7 @@ export interface OrderItem {
 export interface OrderData {
   id?: string // Firebase 會自動生成 ID，可選屬性
   userId: string // 訂單所屬使用者
-  items: Record<string, OrderItem> // 商品清單，使用 productId 作為 Key
+  items: Array<OrderItem> // 商品清單，使用 productId 作為 Key
   totalPrice: number // 訂單總金額
   status: 'pending' | 'completed' | 'canceled' // 訂單狀態
   createdAt: string // 訂單建立時間（ISO 格式）
@@ -21,6 +21,9 @@ export interface OrderData {
 export const useOrders = () => {
   const firebase = useFirebase()
   const orders = ref<Array<OrderData>>([]) // 用於存儲商品列表
+  const order = ref<{
+    [productId: string]: OrderItem
+  }>({})
 
   const isLoading = ref<boolean>(false)
   const error = ref<unknown>(null)
@@ -48,17 +51,18 @@ export const useOrders = () => {
   }
 
   // 更新訂單
-  const updateOrder = async (orderId: string, orderData: OrderData) => {
-    isLoading.value = true
-    error.value = null
-    try {
-      const orderRef = firebase.ref(firebase.database, `orders/${orderId}`)
-      await firebase.update(orderRef, orderData)
-      await getOrders()
-    } catch (e) {
-      error.value = e
+  const updateOrder = async (product: ProductData, quantity: number) => {
+    const orderItem = {
+      productId: String(product.id),
+      name: String(product.name),
+      price: Number(product.price),
+      quantity: quantity
+    } as OrderItem
+
+    order.value = {
+      ...order.value,
+      [String(product.id)]: orderItem
     }
-    isLoading.value = false
   }
 
   // 刪除訂單
@@ -74,5 +78,5 @@ export const useOrders = () => {
     isLoading.value = false
   }
 
-  return { getOrders, createOrder, updateOrder, deleteOrder }
+  return { order, orders , getOrders, createOrder, updateOrder, deleteOrder }
 }

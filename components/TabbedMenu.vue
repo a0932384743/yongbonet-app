@@ -2,7 +2,9 @@
   <tabs scrollable :value="selectCategory" @tab-change="onSelectCategory">
     <tab-list>
       <tab v-for="category in Object.keys(productByCategory)" :key="category" :value="category">
-        {{ category }}
+        {{ category }} ({{
+          productByCategory[category as keyof typeof productByCategory].length ?? 0
+        }})
       </tab>
     </tab-list>
     <tab-panels>
@@ -11,40 +13,67 @@
         :key="category + '_products'"
         :value="category"
       >
-        <DataView
+        <DataTable
           :value="productByCategory[category as keyof typeof productByCategory]"
-          :layout="'list'"
+          scrollable
+          scrollHeight="400px"
         >
-          <template #list="slotProps">
-            <div class="products-container">
-              <div
-                v-for="item in slotProps.items"
-                :key="JSON.stringify(item)"
-                class="product-container"
+          <Column
+            field="img"
+            header="圖片"
+            style="min-width: 100px"
+            headerClass="text-center"
+            bodyClass="text-center"
+          >
+            <template #body="{ data }">
+              <Avatar :image="data.img" class="product-img" :alt="data.name" />
+            </template>
+          </Column>
+          <Column field="name" header="品名" style="min-width: 200px">
+            <template #body="{ data }">
+              {{ data.name }}
+              <span
+                v-if="data.isFavorite"
+                class="pi pi-star-fill"
+                style="color: #10b981; font-size: 15px"
+              />
+            </template>
+          </Column>
+          <Column field="description" header="商品說明">
+            <template #body="{ data }">
+              {{ data.description }}
+            </template>
+          </Column>
+          <Column field="price" header="價格/單位" style="min-width: 200px">
+            <template #body="{ data }">
+              {{ data.price.toLocaleString() }}/{{ data.unit || '-' }}
+            </template>
+          </Column>
+          <Column field="count" header="購買數量" style="min-width: 200px">
+            <template #body="{ data }">
+              <InputNumber
+                showButtons
+                :modelValue="order[data.id]?.quantity || 0"
+                buttonLayout="horizontal"
+                :inputStyle="{ width: '80px', textAlign: 'center' }"
+                @update:model-value="
+                  (value) => {
+                    updateOrder(data, value)
+                  }
+                "
+                :min="0"
+                :max="99"
               >
-                <div class="row">
-                  <Avatar :image="item.img" class="mr-2 product-img" :alt="item.name" />
-                  <div class="column">
-                    <h2 class="name">{{ item.name }}</h2>
-                    <div>
-                      <tag style="border: 2px solid lightgray; background: transparent">
-                        <span style="color: var(--p-text-color)">{{ item.rating || '-' }}</span>
-                        <i class="pi pi-star-fill" style="fill: #ffc400"></i>
-                      </tag>
-                    </div>
-                  </div>
-                </div>
-                <div class="column" style="justify-content: space-between">
-                  <div class="price">NT {{ item.price.toLocaleString() }}元</div>
-                  <div class="row">
-                    <PButton icon="pi pi-heart" outlined severity="danger" />
-                    <PButton icon="pi pi-shopping-cart" label="加入購物車" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </template>
-        </DataView>
+                <template #incrementbuttonicon>
+                  <span class="pi pi-plus" />
+                </template>
+                <template #decrementbuttonicon>
+                  <span class="pi pi-minus" />
+                </template>
+              </InputNumber>
+            </template>
+          </Column>
+        </DataTable>
       </tab-panel>
     </tab-panels>
   </tabs>
@@ -52,15 +81,22 @@
 
 <script lang="ts">
 import { defineComponent, watch, computed, ref } from 'vue'
-import { Tab, TabList, Tabs, TabPanels, TabPanel, Tag, DataView, Button as PButton } from 'primevue'
+import { Tab, TabList, Tabs, TabPanels, TabPanel, DataTable, InputNumber } from 'primevue'
 import { type VendorData } from '@composables/useVendors'
-import { useProducts } from '@composables/useProducts'
+import { type ProductData, useProducts } from '@composables/useProducts'
+import { type OrderItem } from '@composables/useOrders'
 
 export default defineComponent({
   name: 'TabbedMenu',
   props: {
     vendor: {
       type: Object as () => VendorData,
+      required: true
+    },
+    order: {
+      type: Object as () => {
+        [productId: string]: OrderItem
+      },
       required: true
     }
   },
@@ -70,16 +106,20 @@ export default defineComponent({
     Tab,
     TabPanels,
     TabPanel,
-    Tag,
-    DataView,
-    PButton
+    DataTable,
+    InputNumber
   },
-  setup(props) {
+  setup(props, { emit }) {
     const { products, getProductByIds } = useProducts()
     const selectCategory = ref<string>('')
     const onSelectCategory = (value: string) => {
       selectCategory.value = value
     }
+
+    const updateOrder = (product: ProductData, quantity: number) => {
+      emit('updateOrder', product, quantity)
+    }
+
     watch(
       () => props.vendor,
       (vendor, old) => {
@@ -89,7 +129,6 @@ export default defineComponent({
       },
       { immediate: true, deep: true }
     )
-
     watch(
       products,
       (products) => {
@@ -100,7 +139,9 @@ export default defineComponent({
       { deep: true }
     )
 
-    const productByCategory = computed(() => {
+    const productByCategory = computed<{
+      [key: string]: Array<ProductData>
+    }>(() => {
       return products.value.reduce((obj, val) => {
         return {
           ...obj,
@@ -112,6 +153,7 @@ export default defineComponent({
     return {
       selectCategory,
       productByCategory,
+      updateOrder,
       onSelectCategory
     }
   }
@@ -119,23 +161,8 @@ export default defineComponent({
 </script>
 
 <style scoped lang="scss">
-.products-container {
-  width: 100%;
-  display: inline-flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.product-container {
-  width: 100%;
-  display: inline-flex;
-  justify-content: space-between;
-  padding: 20px 10px;
-  border-bottom: 1px solid lightgray;
-
-  &:last-child {
-    border-bottom: 0;
-  }
+.text-center {
+  text-align: center;
 }
 
 .product-img {
@@ -144,30 +171,5 @@ export default defineComponent({
   height: 80px;
   object-fit: contain;
   margin: 0 20px;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.column {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 5px;
-}
-
-.name {
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin: 0 0 5px 0;
-}
-
-.price {
-  font-size: 1rem;
-  font-weight: bold;
-  text-align: end;
 }
 </style>
