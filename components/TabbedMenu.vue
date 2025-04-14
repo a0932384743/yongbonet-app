@@ -39,7 +39,7 @@
               />
             </template>
           </Column>
-          <Column field="description" header="商品說明">
+          <Column field="description" header="商品說明" min-width="200px">
             <template #body="{ data }">
               {{ data.description }}
             </template>
@@ -121,10 +121,8 @@ export default defineComponent({
     const scrollHeight = ref<number>(400)
 
     function updateHeight() {
-      console.log(targetRef.value)
       if (targetRef.value) {
-        scrollHeight.value = targetRef.value?.$el?.clientHeight || 400
-        console.log('目前高度：', scrollHeight.value)
+        scrollHeight.value = targetRef.value.$el.clientHeight || 400
       }
     }
 

@@ -221,6 +221,7 @@ export default defineComponent({
   width: 100%;
   height: 100%;
   border-bottom: 1px solid #10b981;
+  overflow: auto;
 }
 
 .bottom {

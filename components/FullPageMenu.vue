@@ -1,45 +1,57 @@
 <template>
   <div class="waterfall">
     <div v-for="category in Object.keys(productByCategory)" :key="category" class="vendor-section">
-      <h3 class="vendor-name">{{ category }}</h3>
-      <DataView
-        :value="productByCategory[category as keyof typeof productByCategory]"
-        :layout="'list'"
-      >
-        <template #list="slotProps">
-          <div class="products-container">
-            <div
-              v-for="item in slotProps.items"
-              :key="JSON.stringify(item)"
-              class="product-container"
-            >
-              <div class="row" style="width: 100%">
-                <div class="row" style="flex: 1 1 auto; flex-grow: 1">
-                  <h2 class="name">{{ item.name }}</h2>
-                  <Button icon="pi pi-heart" outlined severity="danger" />
-                </div>
-                <div class="price">NT {{ item.price.toLocaleString() }}元</div>
-              </div>
+      <h3 class="vendor-name">
+        {{ category }} ({{
+          productByCategory[category as keyof typeof productByCategory].length ?? 0
+        }})
+      </h3>
+      <div class="products-container">
+        <div
+          v-for="product in productByCategory[category as keyof typeof productByCategory]"
+          :key="JSON.stringify(product)"
+          class="product-container"
+        >
+          <div class="row" style="width: 100%">
+            <h2 class="name">
+              {{ product.name }}
+              <span
+                v-if="product.isFavorite"
+                class="pi pi-star-fill"
+                style="color: #10b981; font-size: 10px"
+              />
+            </h2>
+            <div class="row price" style="justify-content: flex-end">
+              NT {{ product.price.toLocaleString() }} /
+              <InputNumber
+                :modelValue="order[String(product.id)]?.quantity || 0"
+                :inputStyle="{ width: '80px', textAlign: 'center' }"
+                @update:model-value="
+                  (value) => {
+                    updateOrder(product, value)
+                  }
+                "
+                :min="0"
+                :max="99"
+              >
+              </InputNumber>
+              {{ product.unit || '-' }}
             </div>
           </div>
-        </template>
-      </DataView>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
 import { computed, defineComponent, watch } from 'vue'
-import { DataView } from 'primevue'
 import { type VendorData } from '@composables/useVendors'
-import { useProducts } from '@composables/useProducts'
+import { type ProductData, useProducts } from '@composables/useProducts'
 import type { OrderItem } from '@composables/useOrders'
 
 export default defineComponent({
   name: 'FullPageMenu',
-  components: {
-    DataView
-  },
   props: {
     vendor: {
       type: Object as () => VendorData,
@@ -52,8 +64,12 @@ export default defineComponent({
       required: true
     }
   },
-  setup(props) {
+  setup(props, { emit }) {
     const { products, getProductByIds } = useProducts()
+
+    const updateOrder = (product: ProductData, quantity: number) => {
+      emit('updateOrder', product, quantity)
+    }
 
     watch(
       () => props.vendor,
@@ -62,10 +78,12 @@ export default defineComponent({
           getProductByIds(vendor.products)
         }
       },
-      { deep: true, immediate: true }
+      { immediate: true, deep: true }
     )
 
-    const productByCategory = computed(() => {
+    const productByCategory = computed<{
+      [key: string]: Array<ProductData>
+    }>(() => {
       return products.value.reduce((obj, val) => {
         return {
           ...obj,
@@ -75,7 +93,8 @@ export default defineComponent({
     })
 
     return {
-      productByCategory
+      productByCategory,
+      updateOrder
     }
   }
 })
@@ -104,7 +123,6 @@ export default defineComponent({
 }
 
 .vendor-name {
-  font-family: Inter, serif;
   font-weight: 700;
   font-size: 14px;
   line-height: 100%;
@@ -134,14 +152,15 @@ export default defineComponent({
 }
 
 .name {
-  font-size: 1.2rem;
+  font-size: 14px;
   font-weight: bold;
   margin: 0;
+  flex: 1 1 auto;
 }
 
 .price {
-  font-size: 1.2rem;
-  font-weight: bold;
-  text-align: end;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 100%;
 }
 </style>
